@@ -1,0 +1,138 @@
+---
+title: "Project 2 Linear regression" 
+subtitle: "Math 6375 - 2022 Spring"
+author: "Achraf cherkaoui"
+output: 
+  pdf_document:
+    keep_tex: yes  
+header-includes:
+  - \usepackage{color, dsfont, bbold}
+urlcolor: blue  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For this project, we use a real data on abalone fishing in Australia (taken from <http://archive.ics.uci.edu/ml/machine-learning-databases/abalone>). Abalone is a rich nutritious food resource in the many parts of the world. The economic value of abalone is positively correlated with its age.  The age of abalone is determined by cutting the shell through the cone, staining it, and counting the number of rings through a microscope -- a boring and time-consuming task. Other measurements, which are easier to obtain, are used to predict the age.  
+
+From the original data examples with missing values were removed (the majority having the predicted value missing), and the ranges of the continuous values have been scaled for use with an ANN (by dividing by 200). The provided dataset has 4177 rows and 9 columns. Each row corresponds to a particular caught abalone, and the columns correspond to the following attributes:
+
+`Name / Data Type / Measurement Unit / Description`
+  
+Sex / nominal / -- / M, F, and I (infant)  
+Length / continuous / mm / Longest shell measurement  
+Diameter / continuous / mm / perpendicular to length  
+Height / continuous / mm / with meat in shell  
+Whole weight / continuous / grams / whole abalone  
+Shucked weight / continuous / grams / weight of meat  
+Viscera weight / continuous / grams / gut weight (after bleeding)  
+Shell weight / continuous / grams / after being dried  
+Rings / integer / -- / +1.5 gives the age in years  
+
+By checking the correlation matrix of all of the numeric measurements, or based on common sense, these measurements are highly correlated. I fit the linear regression including all features, and made the diagnosis plots and found a couple of outliers and abnormality. Hence I removed these outliers and transformed `rings` to be `log2(rings)`. The diagnosis plots improved a little bit.  All the following is based on the transformed data.
+
+```{r, echo=TRUE,warning=FALSE,message=TRUE, eval=TRUE,out.width='100%', fig.align='center', fig.pos='h',fig.width=8,fig.height=3}
+library(ggplot2)
+
+abalone=read.table("http://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data", sep=",")
+
+abnames = c('sex','length','diameter','height','wt.w','wt.s', 'wt.v','wt.sh','rings') 
+names(abalone)=abnames
+
+View(abalone)
+# check correlation matrix
+round(cor(x=abalone[,2:ncol(abalone)]) ,3)
+
+# fit linear model
+model = lm(rings~.,data=abalone)
+#summary(model)
+par(mfrow=c(1,3))
+plot(model, which=c(1,2,5))  
+
+# remove outliers and tranform the response
+outliers =c(2052,1418,237)
+abalone = abalone[!row.names(abalone)%in%outliers,]
+abalone$rings = log2(abalone$rings)
+
+# fit linear model again
+model = lm(rings~.,data=abalone)
+#summary(model)
+par(mfrow=c(1,3))
+plot(model, which=c(1,2,5))  
+```
+
+**Objective: now, we would like to know if there is a significantly different relation between `diameter` and the transformed `rings` (related with age) among groups of `sex` and what is the relation for each group. To help answer the question, I first made the scatterplot to visualize the data.**
+
+```{r, echo=TRUE,warning=FALSE,message=TRUE, eval=TRUE,out.width='80%', fig.align='center', fig.pos='h',fig.width=8,fig.height=5}
+
+# make the plot to help visualize the relation
+ggplot(abalone,aes(x=diameter,y=rings,color=sex) )+
+  geom_point()+
+  geom_smooth(method=lm)+
+  theme_bw(base_size=16)
+```
+
+We will need a few pieces of information or take a couple of steps to investigate the objective.
+
+* We will need to fit linear models with interaction terms to investigate the difference of effects: 
+
+\textcolor{red}{\textbf{Question 1:}}\textbf{ Fit the model, and show the summary.} 
+
+\textcolor{green}{\textbf{Answer1:}}
+
+```{r, echo=TRUE,warning=FALSE,message=FALSE, eval=TRUE,out.width='80%', fig.align='center', fig.pos='h',fig.width=7,fig.height=5}
+model_1 <- lm(rings ~ sex*diameter, data = abalone)
+summary(model_1)
+```
+
+* Since `sex` has 3 levels, we will need to use the function `relevel` to **change the baseline and fit the linear model again**, so that we can compare the difference of effects of diameter for each of the 3 pairs: "Female" vs "Male", "Female" vs "Infant", "Male" vs "Infant". 
+
+
+
+\textcolor{red}{\textbf{Question 2:}}\textbf{
+Use the function `relevel` to change the baseline category for the variable `sex` and fit the linear model again.}
+
+\textcolor{green}{\textbf{Answer2:}}
+
+```{r, echo=TRUE,warning=FALSE,message=FALSE, eval=TRUE,out.width='80%', fig.align='center', fig.pos='h',fig.width=7,fig.height=5} 
+abalone$sex <- as.factor(abalone$sex)
+abalone$sex <- relevel(abalone$sex, ref = 'I')
+
+summary(lm(rings ~ sex*diameter, data = abalone))
+```
+* Use the above results, please answer the following questions to discuss the different effects of `diameter` to the transformed `rings` among the 3 `sex` groups by **checking the corresponding coefficient estimates and the $p$-values:** 
+
+    - \textcolor{red}{\textbf{Question 3:}}\textbf{Are the effects  significantly different among groups?} For example, are the effects significantly different between `female` and `male`, between `female` and `infant`, and between `infant` and `male`? 
+    
+
+\textcolor{green}{\textbf{Answer3:}} The effects of diameters on rings in the three groups of Sex is significant based on the p-values (< 0.05) corresponding to the coefficients of appropriate interaction terms in the two models.Also the effect of diameters on rings in each of the 3 sex groups is significant.("Female" vs "Male", "Female" vs "Infant", "Male" vs "Infant")
+    
+   - \textcolor{red}{\textbf{Question 4:}}\textbf{How different?} For example, if the effects of diameter to rings are significantly different between `female` group and `infant` group, then tell if the effects of female group is significantly larger or smaller than that of the infant group.  
+  
+\textcolor{green}{\textbf{Answer4:}}
+    
+    
+The additional effect of diameter on rings in infants in comparison to females is the largest.
+Then we have the additional effect diameters on rings in infants with respect to males.Finally, The additional effect of diameters on rings in males with respect to females is the smallest. 
+
+   - \textcolor{red}{\textbf{Question 5:}}\textbf{ What are the effects of `diameter` to `rings` for each group?} The problem basically asks you to write the mathematical expression for the fitted model for each sex group, separately. You should have 3 equations in total. And explain and interpret the coefficient estimate of diameter for each sex group.  
+   
+\textcolor{green}{\textbf{Answer5:}} The mathematical expression for the fitted model for each sex group. 
+
+\begin{align}
+E(Y\lvert X) = \begin{cases}
+\hat{\beta}_{0} + \hat{\beta}_{1}X_{1}, & \text{female}\\
+\hat{\beta}_{0} + \hat{\beta}_{2} + (\hat{\beta}_{1}+\hat{\beta}_{4})X_{1}, & \text{male}\\
+\hat{\beta}_{0} + \hat{\beta}_{3} + (\hat{\beta}_{1} + \hat{\beta}_{5})X_{1}, & \text{infant}
+\end{cases}
+\end{align}    
+     
+|Group | Slope                                    |
+------:|-----------------------------------------:|
+Female |$\hat{\beta}_{1}=1.61502$                 | 
+Male   |$\hat{\beta}_{1} +\hat{\beta}_{4}=2.16178$|
+Infant |$\hat{\beta}_{1}+\hat{\beta}_{5}=3.80952$ |  
+
+For a fixed value  of the diameter X1, the female abalone rings will grow by  $\hat{\beta}_{1}=1.61502$  on average. The growing rings rate for male will be $\hat{\beta}_{1} +\hat{\beta}_{4}=2.16178$.Infants will have the most growing rings rate by $\hat{\beta}_{1}+\hat{\beta}_{5}=3.80952$ . 
+   
