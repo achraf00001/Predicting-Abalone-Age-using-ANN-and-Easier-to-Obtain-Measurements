@@ -1,4 +1,4 @@
-# Predicting-Abalone-Age-using-ANN-and-Easier-to-Obtain-Measurements 
+# Predicting-Abalone-Age-using-ANN-to-Obtain-Measurements 
 
 For this project, we use a real data on abalone fishing in Australia (taken from http://archive.ics.uci.edu/ml
 /machine-learning-databases/abalone). Abalone is a rich nutritious food resource in the many parts of the
